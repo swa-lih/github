@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restaurant Billing - Food Management</title>
+  <style>
+    /* General Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    h1 {
+      color: #5a67d8;
+      text-align: center;
+      font-size: 2em;
+      margin-bottom: 0.5em;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Form Styles */
+    .food-form {
+      margin-bottom: 2em;
+      padding: 15px;
+      background-color: #edf2f7;
+      border-radius: 8px;
+    }
+
+    .food-form h2 {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+      color: #2d3748;
+    }
+
+    .food-form input, .food-form select, .food-form button {
+      width: calc(50% - 10px);
+      margin: 5px 5px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      outline: none;
+    }
+
+    .food-form button {
+      width: 100%;
+      background-color: #5a67d8;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1em;
+      transition: background-color 0.3s;
+    }
+
+    .food-form button:hover {
+      background-color: #434190;
+    }
+
+    /* Table Styles */
+    .food-list h2 {
+      font-size: 1.5em;
+      color: #2d3748;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      background-color: #edf2f7;
+      color: #2d3748;
+      font-weight: 600;
+    }
+
+    td button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.9em;
+      cursor: pointer;
+      color: #fff;
+      transition: background-color 0.3s;
+    }
+
+    .edit-btn {
+      background-color: #38a169;
+    }
+
+    .edit-btn:hover {
+      background-color: #2f855a;
+    }
+
+    .delete-btn {
+      background-color: #e53e3e;
+    }
+
+    .delete-btn:hover {
+      background-color: #c53030;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .food-form input, .food-form select {
+        width: calc(100% - 10px);
+      }
+
+      th, td {
+        font-size: 0.9em;
+      }
+
+      h1, .food-form h2, .food-list h2 {
+        font-size: 1.5em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cloud 9 Restaurant - Food Management</h1>
+
+    <div class="food-form">
+      <h2>Add or Update Food Item</h2>
+      <form id="foodForm">
+        <input type="hidden" id="foodId" />
+        <input type="text" id="name" placeholder="Food Name" required />
+        <input type="text" id="description" placeholder="Description" />
+        <input type="number" id="price" placeholder="Price" required />
+        <input type="text" id="category" placeholder="Category" />
+        <label>
+          Available:
+          <select id="isAvailable">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </label>
+        <button type="submit">Save</button>
+      </form>
+    </div>
+
+    <div class="food-list">
+      <h2>Food Items</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Category</th>
+            <th>Available</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="foodList"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const apiUrl = 'http://localhost:2000/api/foods';
+
+    async function fetchFoodItems() {
+      const response = await fetch(apiUrl);
+      const foods = await response.json();
+      const foodList = document.getElementById('foodList');
+      foodList.innerHTML = foods.map(food => `
+        <tr>
+          <td>${food.name}</td>
+          <td>${food.description}</td>
+          <td>${food.price}</td>
+          <td>${food.category}</td>
+          <td>${food.isAvailable ? 'Yes' : 'No'}</td>
+          <td>
+            <button class="edit-btn" onclick="editFood('${food._id}')">Edit</button>
+            <button class="delete-btn" onclick="deleteFood('${food._id}')">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('foodForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('foodId').value;
+      const name = document.getElementById('name').value;
+      const description = document.getElementById('description').value;
+      const price = document.getElementById('price').value;
+      const category = document.getElementById('category').value;
+      const isAvailable = document.getElementById('isAvailable').value === 'true';
+
+      const foodData = { name, description, price, category, isAvailable };
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `${apiUrl}/${id}` : apiUrl;
+
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(foodData)
+      });
+
+      document.getElementById('foodForm').reset();
+      document.getElementById('foodId').value = '';
+      fetchFoodItems();
+    });
+
+    async function editFood(id) {
+      const response = await fetch(`${apiUrl}/${id}`);
+      const food = await response.json();
+      document.getElementById('foodId').value = food._id;
+      document.getElementById('name').value = food.name;
+      document.getElementById('description').value = food.description;
+      document.getElementById('price').value = food.price;
+      document.getElementById('category').value = food.category;
+      document.getElementById('isAvailable').value = food.isAvailable;
+    }
+
+    async function deleteFood(id) {
+      await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+      fetchFoodItems();
+    }
+
+    fetchFoodItems();
+  </script>
+</body>
+</html>
